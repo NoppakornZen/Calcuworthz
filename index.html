@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Calcuworthz - Strategic Pro</title>
+    
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Calcuworthz">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#050507">
+    
+    <link rel="manifest" href="data:application/manifest+json,{%22name%22:%22Calcuworthz%22,%22short_name%22:%22Calcuworthz%22,%22start_url%22:%22.%22,%22display%22:%22standalone%22,%22background_color%22:%22#050507%22,%22theme_color%22:%22#00d2ff%22}">
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #00d2ff; --secondary: #3a7bd5; --success: #00ff88;
+            --warning: #ffcc00; --danger: #ff4d4d;
+            --bg-dark: #050507; --bg-glass: rgba(15, 15, 20, 0.98);
+            --border: rgba(255, 255, 255, 0.1);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'IBM Plex Sans Thai', sans-serif; background: var(--bg-dark); color: #fff; overflow-x: hidden; width: 100%; }
+
+        /* --- ระบบ Turn-Based Dash Effect --- */
+        #dashLine { position: fixed; top: 0; left: -100%; width: 100%; height: 6px; background: linear-gradient(90deg, transparent, var(--primary), var(--success), transparent); z-index: 10000; pointer-events: none; }
+        @keyframes ryutaDash { 0% { left: -100%; } 100% { left: 100%; } }
+
+        .page { display: none; min-height: 100vh; animation: fadeIn 0.4s ease-out; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Quick Tip */
+        .app-tip { 
+            position: absolute; top: 20px; right: 20px;
+            background: rgba(0, 210, 255, 0.1); border: 1px solid var(--primary); 
+            padding: 10px 15px; border-radius: 15px; max-width: 220px;
+            font-size: 0.75rem; color: var(--primary); backdrop-filter: blur(10px); z-index: 100;
+        }
+
+        .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; background: linear-gradient(to bottom, rgba(5,5,7,0.4), var(--bg-dark)), url('https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&q=80&w=2073'); background-size: cover; background-position: center; }
+        .hero h1 { font-family: 'Outfit'; font-size: clamp(2.8rem, 10vw, 5rem); color: #fff; text-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .hero h2 { font-weight: 400; font-size: 1.1rem; color: var(--primary); margin-bottom: 1rem; }
+        .hero p { max-width: 600px; color: #ccc; margin-bottom: 3rem; font-size: 0.9rem; line-height: 1.6; }
+
+        .container { max-width: 1200px; margin: 0 auto; padding: 1.5rem; }
+        .glass-card { background: var(--bg-glass); border: 1px solid var(--border); border-radius: 28px; padding: 1.8rem; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); margin-bottom: 1.5rem; }
+        
+        .btn { border: none; border-radius: 18px; cursor: pointer; font-weight: 700; transition: 0.3s; padding: 16px 24px; font-family: inherit; font-size: 1rem; }
+        .btn-run { background: linear-gradient(135deg, #00d2ff, #3a7bd5); color: #fff; width: 100%; box-shadow: 0 10px 20px rgba(0, 210, 255, 0.2); }
+        .btn-nav { background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border); }
+
+        .main-grid { display: grid; grid-template-columns: 1fr; gap: 1.5rem; }
+        @media (min-width: 1024px) { .main-grid { grid-template-columns: 350px 1fr; } }
+
+        .item-box { background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; padding: 1.2rem; margin-bottom: 1rem; position: relative; }
+        .btn-delete { position: absolute; top: 12px; right: 12px; background: rgba(255, 77, 77, 0.1); color: var(--danger); border: none; width: 32px; height: 32px; border-radius: 10px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; }
+
+        input[type="text"] { background: transparent; border: none; border-bottom: 2px solid #333; color: #fff; width: 80%; padding: 8px 0; outline: none; font-weight: 600; margin-bottom: 10px; }
+        input[type="range"] { width: 100%; height: 8px; accent-color: var(--primary); }
+        .slider-wrap { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+        .val-tag { background: var(--primary); color: #000; padding: 2px 10px; border-radius: 8px; font-weight: 800; min-width: 42px; text-align: center; }
+
+        #resultArea { margin-top: 2rem; display: none; }
+        .chart-box { background: rgba(0,0,0,0.3); border-radius: 22px; padding: 15px; border: 1px solid var(--border); height: 300px; margin-bottom: 1.5rem; }
+        @media (min-width: 900px) { .chart-box.radar { height: 500px; } }
+        
+        .rank-card { background: rgba(255,255,255,0.03); padding: 1.2rem; border-radius: 20px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border-left: 5px solid transparent; }
+        .active-winner { background: rgba(0, 255, 136, 0.08); border-color: var(--success); }
+    </style>
+</head>
+<body>
+
+<div id="dashLine"></div>
+
+<div id="page1" class="page active">
+    <section class="hero">
+        <div class="app-tip">
+            💡 <b>ใช้เป็น App:</b><br>กดปุ่มแชร์ด้านล่าง แล้วเลือก <b>'Add to Home Screen'</b>
+        </div>
+        <h1>Calcuworthz</h1>
+        <h2>เลิกปวดหัวกับการเลือก... แล้วให้ข้อมูลตอบคุณ</h2>
+        <p>เปลี่ยนความรู้สึกให้เป็นตัวเลขที่ชัดเจน ช่วยคุณตัดสินใจสิ่งที่ใช่ที่สุดแบบไม่มีการลำเอียงเเเละช่วยคุณเลือกสิ่งที่คุ้มค่าที่สุด</p>
+        
+        <div style="display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 280px;">
+            <button class="btn btn-run" onclick="switchPage(2)">Get Started</button>
+            <button class="btn btn-nav" onclick="document.getElementById('guide').scrollIntoView({behavior:'smooth'})">How to use</button>
+        </div>
+    </section>
+
+    <div id="guide" class="container">
+        <h2 style="text-align: center; font-family: 'Outfit'; margin-bottom: 2rem;">วิธีใช้งาน</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+            <div class="glass-card" style="text-align: center;">
+                <span style="font-size: 2.5rem;">🎯</span>
+                <h3 style="margin: 10px 0;">1. ตั้งเกณฑ์</h3>
+                <p style="color: #888; font-size: 0.85rem;">ระบุสิ่งที่คุณให้ความสำคัญ (เช่น ราคา, คุณภาพ)</p>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <span style="font-size: 2.5rem;">🚀</span>
+                <h3 style="margin: 10px 0;">2. ใส่ทางเลือก</h3>
+                <p style="color: #888; font-size: 0.85rem;">ใส่สิ่งที่คุณกำลังลังเล แล้วให้คะแนนแต่ละหัวข้อ</p>
+            </div>
+            <div class="glass-card" style="text-align: center;">
+                <span style="font-size: 2.5rem;">📊</span>
+                <h3 style="margin: 10px 0;">3. ดูคำตอบ</h3>
+                <p style="color: #888; font-size: 0.85rem;">ระบบจะคำนวณและสรุปทางเลือกที่ดีที่สุดให้ทันที</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="page2" class="page">
+    <div class="container">
+        <button class="btn btn-nav" onclick="switchPage(1)" style="margin-bottom: 1.5rem; padding: 10px 20px;">← หน้าหลัก</button>
+        
+        <div class="main-grid">
+            <aside class="glass-card">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">🎯 เกณฑ์การตัดสิน</h3>
+                <div id="criteriaList"></div>
+                <button class="btn" style="width: 100%; background: transparent; border: 1px dashed #555; color: #aaa;" onclick="addCriteria()">+ เพิ่มเกณฑ์</button>
+                <button style="width:100%; background:transparent; border:none; color:var(--danger); margin-top:20px; cursor:pointer; font-size:0.8rem;" onclick="resetAllData()">⚠️ ล้างข้อมูลทั้งหมด</button>
+            </aside>
+
+            <main>
+                <div class="glass-card">
+                    <h3 style="color: var(--primary); margin-bottom: 15px;">🚀 รายการทางเลือก</h3>
+                    <div id="altList"></div>
+                    <button class="btn" style="width: 100%; background: transparent; border: 1px dashed #555; color: #aaa;" onclick="addAlternative()">+ เพิ่มทางเลือก</button>
+                </div>
+                <button class="btn btn-run" onclick="runAnalysis()">⚡ เริ่มการวิเคราะห์เชิงกลยุทธ์</button>
+            </main>
+        </div>
+
+        <div id="resultArea">
+            <div class="glass-card" style="border-left: 6px solid var(--success);">
+                <h2 id="resTitle" style="font-family: 'Outfit';">🏆 ผลการวิเคราะห์</h2>
+                <div id="aiSummary" style="margin-top: 10px; color: #bbb; line-height: 1.6;"></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
+                <div class="glass-card">
+                    <h4 style="margin-bottom: 15px; color: var(--primary);">RANKING</h4>
+                    <div id="rankOutput"></div>
+                    <div class="chart-box"><canvas id="barChart"></canvas></div>
+                </div>
+                <div class="glass-card">
+                    <h4 style="margin-bottom: 15px; color: var(--primary); text-align: center;">STRATEGIC BALANCE</h4>
+                    <div class="chart-box radar"><canvas id="radarChart"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ข้อมูลเริ่มต้น
+    let criteria = [{id: 1, name: "ราคาถูก", weight: 9}, {id: 2, name: "คุณภาพ", weight: 8}];
+    let alternatives = [{id: 1, name: "ทางเลือกที่ 1", scores: {1: 8, 2: 7}}];
+    let charts = {};
+    const COLORS = ['#00ff88', '#00d2ff', '#3a7bd5', '#ffcc00', '#ff4d4d', '#ae4dff'];
+
+    // PWA: Service Worker Registration
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('data:text/javascript;base64,c2VsZixhZGRFdmVudExpc3RlbmVyKCdmZXRjaCcsIGU9Pnt9KTs=');
+    }
+
+    function saveToLocal() { localStorage.setItem('calcu_data_v2', JSON.stringify({ criteria, alternatives })); }
+    function loadFromLocal() {
+        const saved = localStorage.getItem('calcu_data_v2');
+        if (saved) { const p = JSON.parse(saved); criteria = p.criteria; alternatives = p.alternatives; }
+    }
+
+    function switchPage(id) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page' + id).classList.add('active');
+        window.scrollTo(0,0);
+    }
+
+    function render() {
+        saveToLocal();
+        // Render Criteria
+        document.getElementById('criteriaList').innerHTML = criteria.map(c => `
+            <div class="item-box">
+                <button class="btn-delete" onclick="removeCriteria(${c.id})">✕</button>
+                <input type="text" value="${c.name}" oninput="syncCritName(${c.id}, this.value)">
+                <div class="slider-wrap">
+                    <input type="range" min="1" max="10" value="${c.weight}" oninput="updateCritWeight(${c.id}, this.value)">
+                    <span class="val-tag" id="cw-${c.id}">${c.weight}</span>
+                </div>
+            </div>`).join('');
+
+        // Render Alternatives
+        document.getElementById('altList').innerHTML = alternatives.map(alt => `
+            <div class="item-box" style="border-left: 4px solid var(--primary);">
+                <button class="btn-delete" onclick="removeAlternative(${alt.id})">✕</button>
+                <input type="text" value="${alt.name}" oninput="updateAltName(${alt.id}, this.value)" style="color:var(--primary);">
+                <div style="display: grid; grid-template-columns: 1fr; gap: 10px; margin-top: 10px;">
+                    ${criteria.map(c => `
+                        <div>
+                            <p style="font-size:0.7rem; color:#666;" class="alt-label-${c.id}">${c.name}</p>
+                            <div class="slider-wrap">
+                                <input type="range" min="1" max="10" value="${alt.scores[c.id] || 5}" oninput="updateScore(${alt.id}, ${c.id}, this.value)">
+                                <span class="val-tag" style="background:#222; color:var(--primary); font-size:0.8rem;" id="sv-${alt.id}-${c.id}">${alt.scores[c.id] || 5}</span>
+                            </div>
+                        </div>`).join('')}
+                </div>
+            </div>`).join('');
+    }
+
+    // --- Logic Functions ---
+    function syncCritName(id, v) { 
+        criteria.find(c => c.id === id).name = v; 
+        document.querySelectorAll(`.alt-label-${id}`).forEach(el => el.innerText = v);
+        saveToLocal();
+    }
+    function updateCritWeight(id, v) { 
+        criteria.find(c => c.id === id).weight = parseInt(v); 
+        document.getElementById(`cw-${id}`).innerText = v;
+        saveToLocal();
+    }
+    function updateAltName(id, v) { alternatives.find(a => a.id === id).name = v; saveToLocal(); }
+    function updateScore(aId, cId, v) {
+        alternatives.find(a => a.id === aId).scores[cId] = parseInt(v);
+        document.getElementById(`sv-${aId}-${cId}`).innerText = v;
+        saveToLocal();
+    }
+    function addCriteria() {
+        const id = Date.now();
+        criteria.push({id, name: "เกณฑ์ใหม่", weight: 5});
+        alternatives.forEach(a => a.scores[id] = 5);
+        render();
+    }
+    function addAlternative() {
+        const s = {}; criteria.forEach(c => s[c.id] = 5);
+        alternatives.push({id: Date.now(), name: "ทางเลือกใหม่", scores: s});
+        render();
+    }
+    function removeCriteria(id) { if(criteria.length > 1) { criteria = criteria.filter(c => c.id !== id); render(); } }
+    function removeAlternative(id) { if(alternatives.length > 1) { alternatives = alternatives.filter(a => a.id !== id); render(); } }
+    function resetAllData() { if(confirm("ล้างข้อมูลทั้งหมด?")) { localStorage.clear(); location.reload(); } }
+
+    async function runAnalysis() {
+        // Ryuta Dash Effect
+        const dash = document.getElementById('dashLine');
+        dash.style.animation = "ryutaDash 0.7s cubic-bezier(0.23, 1, 0.32, 1)";
+        await new Promise(r => setTimeout(r, 750));
+        dash.style.animation = "";
+
+        const res = alternatives.map(alt => {
+            let total = 0, max = 0;
+            criteria.forEach(c => { total += (alt.scores[c.id] || 5) * c.weight; max += 10 * c.weight; });
+            return { name: alt.name, score: (total / max * 100).toFixed(1), raw: alt.scores };
+        }).sort((a, b) => b.score - a.score);
+
+        document.getElementById('resultArea').style.display = 'block';
+        const winner = res[0];
+        document.getElementById('aiSummary').innerHTML = `จากข้อมูลทั้งหมด <b>"${winner.name}"</b> ได้คะแนนสูงสุดคือ <b>${winner.score}%</b> โดยมีจุดเด่นที่สุดคือด้าน <b>"${getBest(winner)}"</b>`;
+        
+        document.getElementById('rankOutput').innerHTML = res.map((r, i) => `
+            <div class="rank-card ${i==0?'active-winner':''}" style="border-color:${COLORS[i%COLORS.length]}">
+                <span><b>#${i+1}</b> ${r.name}</span>
+                <b style="color:${COLORS[i%COLORS.length]}">${r.score}%</b>
+            </div>`).join('');
+
+        updateCharts(res);
+        window.scrollTo({ top: document.getElementById('resultArea').offsetTop - 20, behavior: 'smooth' });
+    }
+
+    function getBest(alt) {
+        let bId = Object.keys(alt.raw).reduce((a, b) => alt.raw[a] > alt.raw[b] ? a : b);
+        return criteria.find(c => c.id == bId)?.name || "ภาพรวม";
+    }
+
+    function updateCharts(res) {
+        if(charts.bar) charts.bar.destroy();
+        if(charts.radar) charts.radar.destroy();
+        const ctxB = document.getElementById('barChart');
+        const ctxR = document.getElementById('radarChart');
+
+        charts.bar = new Chart(ctxB, {
+            type: 'bar',
+            data: {
+                labels: res.map(r => r.name),
+                datasets: [{ data: res.map(r => r.score), backgroundColor: res.map((_,i) => COLORS[i%COLORS.length]), borderRadius: 12 }]
+            },
+            options: { maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 100, grid: { color: 'rgba(255,255,255,0.05)' } } } }
+        });
+
+        charts.radar = new Chart(ctxR, {
+            type: 'radar',
+            data: {
+                labels: criteria.map(c => c.name),
+                datasets: res.map((r, i) => ({
+                    label: r.name,
+                    data: criteria.map(c => r.raw[c.id] || 5),
+                    borderColor: COLORS[i%COLORS.length],
+                    backgroundColor: 'rgba(255,255,255,0.02)',
+                    borderWidth: i===0?3:1
+                }))
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: { r: { suggestedMin: 0, suggestedMax: 10, grid: { color: 'rgba(255,255,255,0.1)' }, angleLines: { color: 'rgba(255,255,255,0.1)' }, pointLabels: { color: '#aaa' }, ticks: { display: false } } },
+                plugins: { legend: { labels: { color: '#fff', font: { size: 10 } } } }
+            }
+        });
+    }
+
+    window.onload = () => { loadFromLocal(); render(); };
+</script>
+</body>
+</html>
